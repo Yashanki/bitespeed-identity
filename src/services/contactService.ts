@@ -9,22 +9,21 @@ export const handleIdentify = async ({ email, phoneNumber }: IdentifyRequest) =>
   if (!email && !phoneNumber) {
     throw new Error('At least one of email or phoneNumber must be provided');
   }
+const matchedContacts = await prisma.contact.findMany({
+  where: {
+    OR: [
+      ...(email ? [{ email }] : []),
+      ...(phoneNumber ? [{ phoneNumber }] : [])
+    ]
+  },
+  orderBy: {
+    createdAt: 'asc'
+  }
+});
 
-  const matchedContacts = await prisma.contact.findMany({
-    where: {
-      OR: [
-        email ? { email } : undefined,
-        phoneNumber ? { phoneNumber } : undefined,
-      ].filter(Boolean) as any
-    },
-    orderBy: {
-      createdAt: 'asc'
-    }
-  });
 
   let primaryContact = matchedContacts.find(c => c.linkPrecedence === 'primary') ?? matchedContacts[0];
 
-  // If no contact found, create a new primary
   if (matchedContacts.length === 0) {
     const newContact = await prisma.contact.create({
       data: {
